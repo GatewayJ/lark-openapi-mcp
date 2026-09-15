@@ -86,6 +86,65 @@ docker run --rm \
 
 passthrough 容器不需要挂载 token 数据卷，也不需要传入 `APP_ID`、`APP_SECRET` 或 `USER_ACCESS_TOKEN`。
 
+### OpenCSG Space 部署
+
+如果部署到 OpenCSG Space，推荐使用仓库内已提交的预编译 `dist/`，运行时只安装生产依赖并直接启动 `node dist/cli.js`。这样 Space 启动阶段不需要执行 TypeScript 编译，也不会依赖开发依赖。
+
+仓库根目录需要保留以下文件：
+
+| 文件 | 作用 |
+|---|---|
+| `app.py` | OpenCSG `mcp_server` SDK 的 Python 启动包装器 |
+| `requirements.txt` | `app.py` 运行所需 Python 依赖 |
+| `mcp_space_conf.json` | OpenCSG MCP Space 的安装、构建和启动命令 |
+| `package-lock.json` | 锁定 npm 生产依赖，供 `npm ci` 使用 |
+| `dist/` | 预编译后的 JavaScript 运行产物 |
+
+创建或更新 Space 时建议选择：
+
+| 配置项 | 建议值 |
+|---|---|
+| SDK | `mcp_server` |
+| Branch | `main` |
+| Port | `8000` |
+
+`mcp_space_conf.json` 中的核心启动逻辑如下：
+
+```bash
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+env -u APP_ID -u APP_SECRET -u USER_ACCESS_TOKEN -u LARK_TOKEN_MODE \
+  node dist/cli.js mcp \
+  --credential-mode passthrough \
+  --mode streamable \
+  --host 0.0.0.0 \
+  --port ${PORT:-8000} \
+  --domain ${LARK_DOMAIN:-https://open.feishu.cn} \
+  --tools ${LARK_TOOLS:-preset.default} \
+  --language ${LARK_LANGUAGE:-zh}
+```
+
+常用环境变量：
+
+| 环境变量 | 说明 |
+|---|---|
+| `LARK_DOMAIN` | 飞书 OpenAPI 域名，默认 `https://open.feishu.cn` |
+| `LARK_TOOLS` | 暴露的工具集合，默认 `preset.default` |
+| `LARK_LANGUAGE` | 工具描述语言，默认 `zh` |
+| `NPM_REGISTRY` | npm registry，默认 `https://registry.npmmirror.com` |
+| `PYPI_INDEX_URL` | Python 依赖镜像，可设为 `https://pypi.tuna.tsinghua.edu.cn/simple/` |
+| `MAX_WORKERS` | Space 下载仓库文件的并发数，staging 环境建议 `2` |
+
+不要在 Space 环境变量中配置 `APP_ID`、`APP_SECRET`、`USER_ACCESS_TOKEN` 或 `LARK_TOKEN_MODE`。passthrough 模式不会使用这些变量，启动命令也会显式清理它们，避免误退回本地凭证模式。
+
+部署完成后，使用 Space endpoint 验证：
+
+```bash
+curl https://<space-endpoint>/readyz
+```
+
+期望返回 `mode: "passthrough"`、`transport: "streamable"`。如果 Space 是私有访问，需要先通过 OpenCSG 平台侧鉴权；这属于平台入口鉴权，不属于 lark-mcp 的飞书 token 认证。
+
 ## 健康检查
 
 服务启动后可以检查：

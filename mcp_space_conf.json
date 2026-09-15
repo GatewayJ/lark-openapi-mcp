@@ -1,0 +1,7 @@
+{
+  "program_language": "nodejs",
+  "run_mode": "mcp",
+  "install_deps_cmds": "set -e\nif [ -s \"$HOME/.nvm/nvm.sh\" ]; then . \"$HOME/.nvm/nvm.sh\" && nvm install 20 && nvm use 20; fi\nif [ \"$(id -u)\" = \"0\" ] && command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y --no-install-recommends ca-certificates; fi\ntest -f package.json\ntest -f package-lock.json\ntest -f dist/cli.js\nnode -v\nnpm -v\nnpm ci --omit=dev --ignore-scripts --no-audit --no-fund --registry ${NPM_REGISTRY:-https://registry.npmmirror.com}",
+  "build_cmds": "",
+  "launch_cmds": "set -e\nif [ -s \"$HOME/.nvm/nvm.sh\" ]; then . \"$HOME/.nvm/nvm.sh\" && nvm use 20; fi\nenv -u APP_ID -u APP_SECRET -u USER_ACCESS_TOKEN -u LARK_TOKEN_MODE node dist/cli.js mcp --credential-mode passthrough --mode streamable --host 0.0.0.0 --port ${PORT:-8000} --domain ${LARK_DOMAIN:-https://open.feishu.cn} --tools ${LARK_TOOLS:-preset.default} --language ${LARK_LANGUAGE:-zh}"
+}
