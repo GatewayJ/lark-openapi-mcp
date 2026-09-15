@@ -76,6 +76,7 @@ npx -y @larksuiteoapi/lark-mcp logout
 | `--language` | `-l` | 工具语言，可选值为zh或en，默认为en | `-l zh` |
 | `--user-access-token` | `-u` | 用户访问令牌，用于以用户身份调用API | `-u u-xxxx` |
 | `--token-mode` |  | API令牌类型，可选值为auto、tenant_access_token或user_access_token，默认为auto | `--token-mode user_access_token` |
+| `--credential-mode` |  | 凭证模式，可选值为standalone或passthrough，默认为standalone | `--credential-mode passthrough` |
 | `--oauth` |  | 开启 MCP Auth Server 获取user_access_token，且当Token失效时自动要求用户重新登录(Beta) | `--oauth` |
 | `--scope` |  | 指定授权用户访问令牌的OAuth权限范围，默认为应用开通的全部权限，用空格或者逗号分割 | `--scope offline_access docx:document` |
 | `--mode` | `-m` | 传输模式，可选值为stdio、streamable或sse，默认为stdio | `-m streamable` |
@@ -88,5 +89,6 @@ npx -y @larksuiteoapi/lark-mcp logout
 ## 相关文档
 
 - [配置指南](../../usage/configuration/configuration-zh.md)
+- [Passthrough 模式使用指南](../../usage/passthrough/passthrough-zh.md)
 - [工具参考](../tool-presets/tools-zh.md)
 - [故障排除](../../troubleshooting/faq-zh.md)

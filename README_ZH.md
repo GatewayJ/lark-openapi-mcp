@@ -191,6 +191,8 @@ npx -y @larksuiteoapi/lark-mcp login -a cli_xxxx -s yyyyy
 
 更详细的配置选项和部署场景，请参考我们的[配置指南](./docs/usage/configuration/configuration-zh.md)。
 
+如果需要部署一个只做协议转发、不保存 App 凭证和 Token 的远端 MCP Server，请参考 [Passthrough 模式使用指南](./docs/usage/passthrough/passthrough-zh.md)。
+
 关于所有可用命令行参数及其使用方法的详细信息，请参考[命令行参考文档](./docs/reference/cli/cli-zh.md)。
 
 ## 常见问题
