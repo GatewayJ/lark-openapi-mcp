@@ -4,9 +4,7 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { Command } from 'commander';
 import { currentVersion } from './utils/version';
-import { initMcpServerWithTransport } from './mcp-server';
 import { NODE_VERSION_MAJOR, OAPI_MCP_DEFAULT_ARGS, OAPI_MCP_ENV_ARGS } from './utils/constants';
-import { LoginHandler } from './cli/login-handler';
 import { parseStringArray } from './utils/parser-string-array';
 import { LogLevel, logger } from './utils/logger';
 
@@ -19,7 +17,8 @@ program.name('lark-mcp').description('Feishu/Lark MCP Tool').version(currentVers
 program
   .command('whoami')
   .description('Print All User Sessions')
-  .action(() => {
+  .action(async () => {
+    const { LoginHandler } = await import('./cli/login-handler');
     LoginHandler.handleWhoAmI();
   });
 
@@ -48,6 +47,7 @@ program
     if (mergedOptions.debug) {
       logger.setLevel(LogLevel.DEBUG);
     }
+    const { LoginHandler } = await import('./cli/login-handler');
     await LoginHandler.handleLogin({ ...mergedOptions, scope: parseStringArray(mergedOptions.scope) });
   });
 
@@ -60,6 +60,7 @@ program
     if (options.debug) {
       logger.setLevel(LogLevel.DEBUG);
     }
+    const { LoginHandler } = await import('./cli/login-handler');
     await LoginHandler.handleLogout(options.appId);
   });
 
@@ -81,6 +82,10 @@ program
   .option(
     '--token-mode <tokenMode>',
     '(Optional) Token Mode, auto or user_access_token or tenant_access_token (default: "auto")',
+  )
+  .option(
+    '--credential-mode <credentialMode>',
+    '(Optional) Credential Mode, standalone or passthrough (default: "standalone")',
   )
   .option('-u, --user-access-token <userAccessToken>', '(Optional) User Access Token (beta)')
   .option(
@@ -121,11 +126,30 @@ program
       logger.setLevel(LogLevel.DEBUG);
     }
 
-    await initMcpServerWithTransport('oapi', {
+    const serverOptions = {
       ...mergedOptions,
       scope: parseStringArray(mergedOptions.scope),
       tools: parseStringArray(mergedOptions.tools),
-    });
+    };
+
+    if (serverOptions.credentialMode === 'passthrough') {
+      if (serverOptions.mode !== 'streamable') {
+        throw new Error('passthrough credential mode only supports streamable transport');
+      }
+      if (serverOptions.oauth || serverOptions.userAccessToken || serverOptions.tokenMode !== 'auto') {
+        throw new Error('passthrough credential mode does not accept oauth, userAccessToken, or tokenMode');
+      }
+      if (serverOptions.appId || serverOptions.appSecret) {
+        throw new Error('passthrough credential mode does not accept appId or appSecret');
+      }
+
+      const { initPassthroughMcpServerWithTransport } = await import('./mcp-server/shared/init-passthrough');
+      await initPassthroughMcpServerWithTransport(serverOptions);
+      return;
+    }
+
+    const { initMcpServerWithTransport } = await import('./mcp-server/shared/init');
+    await initMcpServerWithTransport('oapi', serverOptions);
   });
 
 program
@@ -140,6 +164,7 @@ program
     if (options.debug) {
       logger.setLevel(LogLevel.DEBUG);
     }
+    const { initMcpServerWithTransport } = await import('./mcp-server/shared/init');
     await initMcpServerWithTransport('recall', options);
   });
 

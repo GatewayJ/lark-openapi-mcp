@@ -1,5 +1,6 @@
 import { McpTool } from '../../../../types';
 import { z } from 'zod';
+import { withRequestCredential } from '../../../../utils/passthrough-handler';
 
 export type imBuiltinToolName = 'im.builtin.batchSend';
 
@@ -37,14 +38,18 @@ export const larkImBuiltinBatchSendTool: McpTool = {
         .optional(),
     }),
   },
-  customHandler: async (client, params): Promise<any> => {
+  customHandler: async (client, params, options): Promise<any> => {
     try {
       const { data } = params;
-      const response = await client.request({
+      const requestCredential = options?.credential || options?.context?.credential;
+      const requestParams = {
         method: 'POST',
         url: '/open-apis/message/v4/batch_send',
         data,
-      });
+      };
+      const response = requestCredential
+        ? await client.request(requestParams, withRequestCredential(requestCredential))
+        : await client.request(requestParams);
       return {
         content: [
           {

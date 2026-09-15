@@ -14,6 +14,7 @@ export const OAPI_MCP_DEFAULT_ARGS = {
   toolNameCase: 'snake',
   language: 'en',
   tokenMode: 'auto',
+  credentialMode: 'standalone',
   mode: 'stdio',
   host: 'localhost',
   port: '3000',
@@ -24,6 +25,7 @@ export const OAPI_MCP_ENV_ARGS = cleanEnvArgs({
   appSecret: process.env.APP_SECRET,
   userAccessToken: process.env.USER_ACCESS_TOKEN,
   tokenMode: process.env.LARK_TOKEN_MODE,
+  credentialMode: process.env.LARK_CREDENTIAL_MODE,
   tools: process.env.LARK_TOOLS,
   domain: process.env.LARK_DOMAIN,
 });

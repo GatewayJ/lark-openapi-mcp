@@ -1,6 +1,7 @@
 import * as lark from '@larksuiteoapi/node-sdk';
-import { ProjectName, ToolName } from '../tools';
+import type { ProjectName, ToolName } from '../tools';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types';
+import type { RequestCredential, RequestExecutionContext } from '../../shared/credential';
 
 export type ToolNameCase = 'snake' | 'camel' | 'kebab' | 'dot';
 
@@ -12,7 +13,14 @@ export enum TokenMode {
 
 export interface McpHandlerOptions {
   userAccessToken?: string;
+  credential?: RequestCredential;
+  context?: RequestExecutionContext;
   tool?: McpTool;
+}
+
+export interface PassthroughMcpHandlerOptions {
+  context: RequestExecutionContext;
+  tool: McpTool;
 }
 
 export type McpHandler = (

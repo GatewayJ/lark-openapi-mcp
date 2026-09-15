@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { McpServerOptions, mcpServerOptionSchema } from '../shared';
+import { McpServerOptions, mcpServerOptionSchema } from '../shared/types';
 
 export enum JSONRPCErrorCodes {
   PARSE_ERROR = -32700,

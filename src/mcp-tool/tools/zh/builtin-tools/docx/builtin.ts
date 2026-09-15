@@ -3,6 +3,7 @@ import * as lark from '@larksuiteoapi/node-sdk';
 import { ReadStream } from 'fs';
 import { Readable } from 'stream';
 import { z } from 'zod';
+import { withRequestCredential } from '../../../../utils/passthrough-handler';
 
 // 工具名称类型
 export type docxBuiltinToolName = 'docx.builtin.search' | 'docx.builtin.import';
@@ -35,22 +36,26 @@ export const larkDocxBuiltinSearchTool: McpTool = {
   },
   customHandler: async (client, params, options): Promise<any> => {
     try {
-      const { userAccessToken } = options || {};
+      const { userAccessToken, credential, context } = options || {};
+      const requestCredential = credential || context?.credential;
 
-      if (!userAccessToken) {
+      if (!userAccessToken && !requestCredential) {
         return {
           isError: true,
           content: [{ type: 'text' as const, text: JSON.stringify({ msg: '当前未配置 userAccessToken' }) }],
         };
       }
 
+      const requestOptions = requestCredential
+        ? withRequestCredential(requestCredential)
+        : lark.withUserAccessToken(userAccessToken as string);
       const response = await client.request(
         {
           method: 'POST',
           url: '/open-apis/suite/docs-api/search/object',
           data: params.data,
         },
-        lark.withUserAccessToken(userAccessToken),
+        requestOptions,
       );
 
       return {
@@ -91,7 +96,13 @@ export const larkDocxBuiltinImportTool: McpTool = {
   },
   customHandler: async (client, params, options): Promise<any> => {
     try {
-      const { userAccessToken } = options || {};
+      const { userAccessToken, credential, context } = options || {};
+      const requestCredential = credential || context?.credential;
+      const requestOptions = requestCredential
+        ? withRequestCredential(requestCredential)
+        : userAccessToken && params.useUAT
+          ? lark.withUserAccessToken(userAccessToken)
+          : undefined;
       const file = Readable.from(params.data.markdown) as ReadStream;
 
       const data = {
@@ -103,10 +114,9 @@ export const larkDocxBuiltinImportTool: McpTool = {
         extra: JSON.stringify({ obj_type: 'docx', file_extension: 'md' }),
       };
 
-      const response =
-        userAccessToken && params.useUAT
-          ? await client.drive.media.uploadAll({ data }, lark.withUserAccessToken(userAccessToken))
-          : await client.drive.media.uploadAll({ data });
+      const response = requestOptions
+        ? await client.drive.media.uploadAll({ data }, requestOptions)
+        : await client.drive.media.uploadAll({ data });
 
       if (!response?.file_token) {
         return {
@@ -126,10 +136,9 @@ export const larkDocxBuiltinImportTool: McpTool = {
         },
       };
 
-      const importResponse =
-        userAccessToken && params.useUAT
-          ? await client.drive.importTask.create({ data: importData }, lark.withUserAccessToken(userAccessToken))
-          : await client.drive.importTask.create({ data: importData });
+      const importResponse = requestOptions
+        ? await client.drive.importTask.create({ data: importData }, requestOptions)
+        : await client.drive.importTask.create({ data: importData });
 
       const taskId = importResponse.data?.ticket;
       if (!taskId) {
@@ -140,10 +149,9 @@ export const larkDocxBuiltinImportTool: McpTool = {
       }
 
       for (let i = 0; i < 5; i++) {
-        const taskResponse =
-          userAccessToken && params.useUAT
-            ? await client.drive.importTask.get({ path: { ticket: taskId } }, lark.withUserAccessToken(userAccessToken))
-            : await client.drive.importTask.get({ path: { ticket: taskId } });
+        const taskResponse = requestOptions
+          ? await client.drive.importTask.get({ path: { ticket: taskId } }, requestOptions)
+          : await client.drive.importTask.get({ path: { ticket: taskId } });
 
         if (taskResponse.data?.result?.job_status === 0) {
           return {
