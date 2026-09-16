@@ -185,7 +185,7 @@ curl http://127.0.0.1:3000/readyz
 
 | Header | 是否必填 | 说明 |
 |---|---|---|
-| `Authorization: Bearer <token>` | 是 | 直接承载飞书/Lark UAT 或 TAT |
+| `lark-access-token: <token>` | 是 | 直接承载飞书/Lark UAT 或 TAT，不带 `Bearer` 前缀 |
 | `X-Lark-Token-Type` | 是 | 只能是 `user_access_token` 或 `tenant_access_token` |
 | `Content-Type: application/json` | 是 | MCP JSON-RPC 请求体 |
 | `Accept: application/json, text/event-stream` | 建议 | 兼容 Streamable HTTP 返回 |
@@ -193,7 +193,8 @@ curl http://127.0.0.1:3000/readyz
 
 注意：
 
-- `Authorization` 不是 lark-mcp 自身的登录凭证，而是下游飞书 OpenAPI 的访问凭证。
+- `Authorization` 不再承载飞书/Lark access token，可留给 OpenCSG Space、API Gateway 或其他中间代理系统做平台鉴权。
+- `lark-access-token` 必须是原始 access token 字符串，不要写成 `Bearer <token>`。
 - lark-mcp 不从 token 字符串猜测类型，必须由 `X-Lark-Token-Type` 指明。
 - 请求 query 不允许覆盖 `tools`、`domain`、`language`、`toolNameCase`、`tokenMode` 等服务端配置。
 - 工具参数里的 `useUAT` 只作为兼容字段。如果它和 `X-Lark-Token-Type` 冲突，请求会被拒绝。
@@ -229,7 +230,7 @@ curl -sS -X POST http://127.0.0.1:3000/mcp \
 curl -sS -X POST http://127.0.0.1:3000/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -H 'Authorization: Bearer <USER_ACCESS_TOKEN>' \
+  -H 'lark-access-token: <USER_ACCESS_TOKEN>' \
   -H 'X-Lark-Token-Type: user_access_token' \
   --data '{
     "jsonrpc": "2.0",
@@ -255,7 +256,7 @@ curl -sS -X POST http://127.0.0.1:3000/mcp \
 curl -sS -X POST http://127.0.0.1:3000/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -H 'Authorization: Bearer <TENANT_ACCESS_TOKEN>' \
+  -H 'lark-access-token: <TENANT_ACCESS_TOKEN>' \
   -H 'X-Lark-Token-Type: tenant_access_token' \
   --data '{
     "jsonrpc": "2.0",
@@ -278,7 +279,7 @@ curl -sS -X POST http://127.0.0.1:3000/mcp \
 
 | 错误码 | 含义 | 处理建议 |
 |---|---|---|
-| `missing_lark_credential` | `tools/call` 未携带 `Authorization` | Connector 补充 Bearer token |
+| `missing_lark_credential` | `tools/call` 未携带 `lark-access-token` | Connector 补充飞书/Lark access token |
 | `missing_token_type` | 缺少 `X-Lark-Token-Type` | Connector 补充 token 类型 |
 | `invalid_token_type` | token 类型不是允许值 | 只使用 `user_access_token` 或 `tenant_access_token` |
 | `request_config_override_not_allowed` | 请求 query 尝试覆盖服务端配置 | 删除 query 参数，在启动命令中固定配置 |

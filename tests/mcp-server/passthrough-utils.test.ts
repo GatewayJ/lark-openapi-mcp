@@ -27,7 +27,7 @@ describe('passthrough transport utils', () => {
     const req = createRequest({
       body: { jsonrpc: '2.0', id: 1, method: 'tools/call' },
       headers: {
-        authorization: 'Bearer tenant-token',
+        'lark-access-token': 'tenant-token',
         'x-lark-token-type': 'tenant_access_token',
         'x-request-id': 'req-2',
       },
@@ -39,21 +39,45 @@ describe('passthrough transport utils', () => {
     });
   });
 
-  it('rejects tools/call when Authorization is missing', () => {
+  it('rejects tools/call when lark-access-token is missing', () => {
     const req = createRequest({
       body: { jsonrpc: '2.0', id: 1, method: 'tools/call' },
       headers: { 'x-lark-token-type': 'user_access_token' },
     });
 
     expect(() => parsePassthroughRequestContext(req, true)).toThrow(PassthroughRequestError);
-    expect(() => parsePassthroughRequestContext(req, true)).toThrow('Missing Authorization header');
+    expect(() => parsePassthroughRequestContext(req, true)).toThrow('Missing lark-access-token header');
+  });
+
+  it('does not treat Authorization as the Lark access token', () => {
+    const req = createRequest({
+      body: { jsonrpc: '2.0', id: 1, method: 'tools/call' },
+      headers: {
+        authorization: 'Bearer platform-token',
+        'x-lark-token-type': 'user_access_token',
+      },
+    });
+
+    expect(() => parsePassthroughRequestContext(req, true)).toThrow('Missing lark-access-token header');
+  });
+
+  it('rejects lark-access-token values with Bearer prefix', () => {
+    const req = createRequest({
+      body: { jsonrpc: '2.0', id: 1, method: 'tools/call' },
+      headers: {
+        'lark-access-token': 'Bearer user-token',
+        'x-lark-token-type': 'user_access_token',
+      },
+    });
+
+    expect(() => parsePassthroughRequestContext(req, true)).toThrow('raw access token');
   });
 
   it('rejects invalid token type', () => {
     const req = createRequest({
       body: { jsonrpc: '2.0', id: 1, method: 'tools/call' },
       headers: {
-        authorization: 'Bearer user-token',
+        'lark-access-token': 'user-token',
         'x-lark-token-type': 'app_access_token',
       },
     });
@@ -83,7 +107,7 @@ describe('passthrough transport utils', () => {
     sendPassthroughJsonRpcError(
       res as any,
       req,
-      new PassthroughRequestError('missing_lark_credential', 'Missing Authorization header'),
+      new PassthroughRequestError('missing_lark_credential', 'Missing lark-access-token header'),
     );
 
     expect(res.status).toHaveBeenCalledWith(200);

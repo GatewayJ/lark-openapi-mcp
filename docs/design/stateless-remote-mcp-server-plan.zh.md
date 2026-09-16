@@ -26,13 +26,13 @@
 
 ```http
 POST /mcp HTTP/1.1
-Authorization: Bearer <LARK_ACCESS_TOKEN>
+lark-access-token: <LARK_ACCESS_TOKEN>
 X-Lark-Token-Type: user_access_token | tenant_access_token
 Content-Type: application/json
 Accept: application/json, text/event-stream
 ```
 
-`Authorization` 在本模式中直接承载飞书 Access Token，不是 MCP Server 自身的认证凭证。Server 在凭证层只检查 Header 是否完整、Token Type 是否为允许枚举，并根据 Tool 元数据约束允许的 Token Type；Token 真伪、有效期、scope、App 权限和用户权限由飞书 OpenAPI 校验。
+`lark-access-token` 在本模式中直接承载飞书 Access Token，不是 MCP Server 自身的认证凭证。`Authorization` 保留给 OpenCSG Space、API Gateway 或其他中间代理系统做平台鉴权。Server 在凭证层只检查 Header 是否完整、Token Type 是否为允许枚举，并根据 Tool 元数据约束允许的 Token Type；Token 真伪、有效期、scope、App 权限和用户权限由飞书 OpenAPI 校验。
 
 ## 2. 范围与边界
 
@@ -120,9 +120,9 @@ Accept: application/json, text/event-stream
 
 ```mermaid
 flowchart LR
-    A[调用方 A<br/>UAT / App A] -->|HTTPS POST /mcp<br/>Bearer Token A + Token Type| M
-    B[调用方 B<br/>UAT / App B] -->|HTTPS POST /mcp<br/>Bearer Token B + Token Type| M
-    C[调用方 C<br/>TAT / App C] -->|HTTPS POST /mcp<br/>Bearer Token C + Token Type| M
+    A[调用方 A<br/>UAT / App A] -->|HTTPS POST /mcp<br/>lark-access-token A + Token Type| M
+    B[调用方 B<br/>UAT / App B] -->|HTTPS POST /mcp<br/>lark-access-token B + Token Type| M
+    C[调用方 C<br/>TAT / App C] -->|HTTPS POST /mcp<br/>lark-access-token C + Token Type| M
 
     subgraph OnePod[单个 Pod / 单个容器]
         M[Lark MCP Server<br/>Streamable HTTP<br/>无状态]
@@ -134,7 +134,7 @@ flowchart LR
         X --> E
     end
 
-    E -->|显式 Bearer UAT/TAT| L[飞书 / Lark OpenAPI]
+    E -->|显式 UAT/TAT| L[飞书 / Lark OpenAPI]
     L -->|校验 Token / scope / 权限| E
 ```
 
@@ -186,7 +186,7 @@ flowchart LR
 
 | Header | initialize/tools/list | tools/call | 说明 |
 |---|---:|---:|---|
-| `Authorization: Bearer <token>` | 可选 | 必填 | 直接传 Lark UAT/TAT |
+| `lark-access-token: <token>` | 可选 | 必填 | 直接传 Lark UAT/TAT，不带 `Bearer` 前缀 |
 | `X-Lark-Token-Type` | 可选 | 必填 | 只允许 `user_access_token` / `tenant_access_token` |
 | `X-Request-Id` | 可选 | 可选 | 未提供时 Server 生成；仅用于日志关联 |
 | `Content-Type: application/json` | 必填 | 必填 | MCP JSON-RPC |
@@ -194,7 +194,7 @@ flowchart LR
 
 处理规则：
 
-1. Bearer 解析必须严格，拒绝缺失 Token、空 Token、控制字符、重复 Header 和超长值。
+1. `lark-access-token` 解析必须严格，拒绝缺失 Token、空 Token、控制字符、重复 Header、超长值、空白字符和 `Bearer` 前缀。
 2. 不从 Token 字符串猜类型；必须使用 `X-Lark-Token-Type`。
 3. 不把 Token 写入 `req.auth` 作为“已验证的 MCP 身份”；它只是下游 Lark 凭证。
 4. 不允许 query string 或 Tool arguments 覆盖 Token Type。兼容参数 `useUAT` 保留在原 Tool Schema 中，但只作为身份一致性声明：缺省时由 Header 决定；显式值与 Header 一致时继续执行；发生冲突时立即返回 `identity_override_not_allowed`，且不调用飞书。
@@ -510,7 +510,7 @@ health:
 
 ```http
 POST https://lark-mcp.example.com/mcp
-Authorization: Bearer <USER_ACCESS_TOKEN>
+lark-access-token: <USER_ACCESS_TOKEN>
 X-Lark-Token-Type: user_access_token
 Content-Type: application/json
 Accept: application/json, text/event-stream
@@ -534,7 +534,7 @@ Accept: application/json, text/event-stream
 
 ```http
 POST https://lark-mcp.example.com/mcp
-Authorization: Bearer <TENANT_ACCESS_TOKEN>
+lark-access-token: <TENANT_ACCESS_TOKEN>
 X-Lark-Token-Type: tenant_access_token
 Content-Type: application/json
 Accept: application/json, text/event-stream

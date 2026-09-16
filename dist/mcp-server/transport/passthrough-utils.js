@@ -10,7 +10,9 @@ exports.getJsonRpcId = getJsonRpcId;
 exports.parsePassthroughRequestContext = parsePassthroughRequestContext;
 exports.sendPassthroughJsonRpcError = sendPassthroughJsonRpcError;
 const crypto_1 = __importDefault(require("crypto"));
-const MAX_AUTHORIZATION_HEADER_LENGTH = 8192;
+const LARK_ACCESS_TOKEN_HEADER = 'lark-access-token';
+const LARK_ACCESS_TOKEN_HEADER_DISPLAY = 'lark-access-token';
+const MAX_LARK_ACCESS_TOKEN_HEADER_LENGTH = 8192;
 const MAX_TOKEN_TYPE_HEADER_LENGTH = 64;
 var PassthroughJSONRPCErrorCodes;
 (function (PassthroughJSONRPCErrorCodes) {
@@ -40,17 +42,16 @@ function assertHeaderValue(name, value, maxLength) {
         throw new PassthroughRequestError('invalid_header', `${name} contains control characters`);
     }
 }
-function parseBearerToken(req) {
-    const authorization = getSingleHeader(req, 'authorization');
-    if (!authorization) {
-        throw new PassthroughRequestError('missing_lark_credential', 'Missing Authorization header');
+function parseLarkAccessToken(req) {
+    const accessToken = getSingleHeader(req, LARK_ACCESS_TOKEN_HEADER);
+    if (!accessToken) {
+        throw new PassthroughRequestError('missing_lark_credential', `Missing ${LARK_ACCESS_TOKEN_HEADER_DISPLAY} header`);
     }
-    assertHeaderValue('Authorization', authorization, MAX_AUTHORIZATION_HEADER_LENGTH);
-    const match = authorization.match(/^Bearer ([^\s]+)$/);
-    if (!(match === null || match === void 0 ? void 0 : match[1])) {
-        throw new PassthroughRequestError('invalid_authorization', 'Authorization must use Bearer token format');
+    assertHeaderValue(LARK_ACCESS_TOKEN_HEADER_DISPLAY, accessToken, MAX_LARK_ACCESS_TOKEN_HEADER_LENGTH);
+    if (/\s/.test(accessToken)) {
+        throw new PassthroughRequestError('invalid_lark_access_token', `${LARK_ACCESS_TOKEN_HEADER_DISPLAY} must contain the raw access token without whitespace or Bearer prefix`);
     }
-    return match[1];
+    return accessToken;
 }
 function parseTokenType(req) {
     const tokenType = getSingleHeader(req, 'x-lark-token-type');
@@ -95,7 +96,7 @@ function parsePassthroughRequestContext(req, requireCredential) {
     return {
         requestId,
         credential: {
-            accessToken: parseBearerToken(req),
+            accessToken: parseLarkAccessToken(req),
             type: parseTokenType(req),
         },
     };

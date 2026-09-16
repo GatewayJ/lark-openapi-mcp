@@ -72,7 +72,7 @@ export class PassthroughLarkMcpTool {
         if (!credential) {
           return passthroughToolError({
             code: 'missing_lark_credential',
-            message: 'tools/call requires Authorization and X-Lark-Token-Type headers',
+            message: 'tools/call requires lark-access-token and X-Lark-Token-Type headers',
             tool: tool.name,
           });
         }

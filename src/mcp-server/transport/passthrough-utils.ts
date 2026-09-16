@@ -2,7 +2,9 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import type { LarkTokenType, RequestExecutionContext } from '../../shared/credential';
 
-const MAX_AUTHORIZATION_HEADER_LENGTH = 8192;
+const LARK_ACCESS_TOKEN_HEADER = 'lark-access-token';
+const LARK_ACCESS_TOKEN_HEADER_DISPLAY = 'lark-access-token';
+const MAX_LARK_ACCESS_TOKEN_HEADER_LENGTH = 8192;
 const MAX_TOKEN_TYPE_HEADER_LENGTH = 64;
 
 export enum PassthroughJSONRPCErrorCodes {
@@ -40,20 +42,25 @@ function assertHeaderValue(name: string, value: string, maxLength: number) {
   }
 }
 
-function parseBearerToken(req: Request) {
-  const authorization = getSingleHeader(req, 'authorization');
-  if (!authorization) {
-    throw new PassthroughRequestError('missing_lark_credential', 'Missing Authorization header');
+function parseLarkAccessToken(req: Request) {
+  const accessToken = getSingleHeader(req, LARK_ACCESS_TOKEN_HEADER);
+  if (!accessToken) {
+    throw new PassthroughRequestError(
+      'missing_lark_credential',
+      `Missing ${LARK_ACCESS_TOKEN_HEADER_DISPLAY} header`,
+    );
   }
 
-  assertHeaderValue('Authorization', authorization, MAX_AUTHORIZATION_HEADER_LENGTH);
+  assertHeaderValue(LARK_ACCESS_TOKEN_HEADER_DISPLAY, accessToken, MAX_LARK_ACCESS_TOKEN_HEADER_LENGTH);
 
-  const match = authorization.match(/^Bearer ([^\s]+)$/);
-  if (!match?.[1]) {
-    throw new PassthroughRequestError('invalid_authorization', 'Authorization must use Bearer token format');
+  if (/\s/.test(accessToken)) {
+    throw new PassthroughRequestError(
+      'invalid_lark_access_token',
+      `${LARK_ACCESS_TOKEN_HEADER_DISPLAY} must contain the raw access token without whitespace or Bearer prefix`,
+    );
   }
 
-  return match[1];
+  return accessToken;
 }
 
 function parseTokenType(req: Request): LarkTokenType {
@@ -118,7 +125,7 @@ export function parsePassthroughRequestContext(req: Request, requireCredential: 
   return {
     requestId,
     credential: {
-      accessToken: parseBearerToken(req),
+      accessToken: parseLarkAccessToken(req),
       type: parseTokenType(req),
     },
   };
